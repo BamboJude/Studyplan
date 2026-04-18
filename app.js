@@ -19,13 +19,6 @@ const dayNameToCode = {
   Friday: "FR",
 };
 
-const pdfJsUrls = [
-  "assets/pdf.min.mjs",
-  "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs",
-  "https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.min.mjs",
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs",
-];
-
 let semesterPlanText = "";
 let currentSearch = "";
 
@@ -612,18 +605,12 @@ async function extractPdfText(file) {
 }
 
 async function loadPdfJs() {
-  for (const url of pdfJsUrls) {
-    try {
-      const moduleUrl = new URL(url, window.location.href).href;
-      const pdfjsLib = await import(moduleUrl);
-      pdfjsLib.GlobalWorkerOptions.workerSrc = moduleUrl.replace("pdf.min.mjs", "pdf.worker.min.mjs");
-      return pdfjsLib;
-    } catch (error) {
-      console.warn(`PDF.js failed from ${url}`, error);
-    }
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("assets/pdf.worker.min.js", window.location.href).href;
+    return window.pdfjsLib;
   }
 
-  throw new Error("PDF.js could not be loaded from any CDN.");
+  throw new Error("PDF.js is not loaded. Check that assets/pdf.min.js is available on the hosted site.");
 }
 
 function importParsedText(text) {
