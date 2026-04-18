@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HSRW Timetable Studio</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="intro-band">
+        <div class="intro-copy">
+          <p class="eyebrow">HSRW timetable builder</p>
+          <h1>Build a semester plan that prints cleanly and imports into your calendar.</h1>
+          <p>
+            Upload the lecture timetable first so the app can find times, rooms, and lecturers.
+            Add a semester plan only when you want help spotting the right subjects.
+          </p>
+        </div>
+        <img
+          class="sample-image"
+          src="assets/semester-plan-example.png"
+          alt="Example semester plan table"
+        >
+      </section>
+
+      <section class="workspace" aria-label="Timetable builder">
+        <aside class="control-panel">
+          <div class="panel-section">
+            <h2>1. Lecture Timetable</h2>
+            <label class="upload-zone" for="sourceFile">
+              <span>Upload timetable PDF</span>
+              <small id="fileStatus">Required for calendar generation. It should contain course times, halls, and professors.</small>
+            </label>
+            <input id="sourceFile" type="file" accept=".pdf,.txt,.csv,.json,application/pdf,text/plain,text/csv,application/json">
+            <textarea id="rawText" rows="8" placeholder="Or paste copied lecture timetable text here..."></textarea>
+            <button class="secondary-button" id="parseTextButton" type="button">Read Timetable Text</button>
+            <div id="importSummary" class="import-summary" aria-live="polite"></div>
+          </div>
+
+          <div class="panel-section">
+            <h2>2. Semester Plan</h2>
+            <label class="upload-zone optional-upload" for="semesterPlanFile">
+              <span>Optional course plan</span>
+              <small id="semesterPlanStatus">Use this to suggest likely subjects. Calendar times still come from the lecture timetable.</small>
+            </label>
+            <input id="semesterPlanFile" type="file" accept=".pdf,.txt,.csv,.json,.png,.jpg,.jpeg,application/pdf,text/plain,text/csv,application/json,image/png,image/jpeg">
+          </div>
+
+          <div class="panel-section">
+            <h2>3. Semester Details</h2>
+            <label>
+              Student name
+              <input id="studentName" type="text" value="HSRW Student">
+            </label>
+            <label>
+              Programme
+              <input id="programmeName" type="text" value="Information Engineering and Computer Sciences">
+            </label>
+            <label>
+              Semester window
+              <span class="date-row">
+                <input id="semesterStart" type="date" value="2026-04-07">
+                <input id="semesterEnd" type="date" value="2026-07-17">
+              </span>
+            </label>
+          </div>
+
+          <div class="panel-section">
+            <h2>4. Manual Course</h2>
+            <div class="manual-grid">
+              <input id="manualTitle" type="text" placeholder="Course name">
+              <input id="manualProfessor" type="text" placeholder="Professor">
+              <input id="manualRoom" type="text" placeholder="Hall / room">
+              <select id="manualDay">
+                <option value="MO">Monday</option>
+                <option value="TU">Tuesday</option>
+                <option value="WE">Wednesday</option>
+                <option value="TH">Thursday</option>
+                <option value="FR">Friday</option>
+              </select>
+              <input id="manualStart" type="time" value="08:15">
+              <input id="manualEnd" type="time" value="11:30">
+            </div>
+            <button class="secondary-button" id="addManualButton" type="button">Add Course</button>
+          </div>
+        </aside>
+
+        <section class="planner-panel">
+          <div class="toolbar">
+            <div>
+              <p class="eyebrow">Course selection</p>
+              <h2>Choose this semester’s courses</h2>
+              <p id="courseStats" class="toolbar-note">No timetable loaded yet.</p>
+            </div>
+            <div class="actions">
+              <button class="secondary-action" id="selectAllButton" type="button">Select All</button>
+              <button class="secondary-action" id="clearSelectionButton" type="button">Clear</button>
+              <button id="printButton" type="button">Print / Save PDF</button>
+              <button id="icsButton" type="button">Download Calendar</button>
+            </div>
+          </div>
+
+          <label class="search-box">
+            Search courses, professors, rooms
+            <input id="courseSearch" type="search" placeholder="Machine Learning, Prof., PC-Pool...">
+          </label>
+          <div id="courseList" class="course-list" aria-live="polite"></div>
+
+          <article id="printArea" class="print-area">
+            <header class="print-header">
+              <div>
+                <p class="eyebrow">Personal timetable</p>
+                <h2 id="printTitle">HSRW Student</h2>
+                <p id="printSubtitle">Information Engineering and Computer Sciences</p>
+              </div>
+              <p id="printDates">07 Apr 2026 - 17 Jul 2026</p>
+            </header>
+
+            <div class="timetable-table-wrap" id="calendarGrid"></div>
+            <section class="agenda">
+              <h2>Block-course details</h2>
+              <div id="agendaList"></div>
+            </section>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
