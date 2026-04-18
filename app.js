@@ -342,7 +342,7 @@ function detailsToCourse(details, day, start, end) {
   const blockIndex = possibleTitleLines.findIndex((line) => /^Block course:/i.test(line));
   const titleLines = blockIndex > -1 ? possibleTitleLines.slice(0, blockIndex) : possibleTitleLines;
   const titleRaw = titleLines.join(" ").replace(/\s+/g, " ").trim();
-  const codeMatch = titleRaw.match(/^(\d{4})\s+(.+)$/);
+  const codeMatch = titleRaw.match(/^(\d{4})\s*(.+)$/);
   const code = codeMatch ? codeMatch[1] : "";
   const title = codeMatch ? codeMatch[2] : titleRaw;
   if (!title) return null;
@@ -447,7 +447,19 @@ function prepareLines(text) {
 }
 
 function cleanLine(line = "") {
-  return String(line).replace(/\s+/g, " ").trim();
+  let cleaned = String(line).replace(/\s+/g, " ").trim();
+  cleaned = collapseSpacedLetterRuns(cleaned);
+  cleaned = cleaned.replace(/\b([A-ZÄÖÜ])\s+([a-zäöüß]{2,})/g, "$1$2");
+  cleaned = cleaned.replace(/\bD\s*r\s*\./g, "Dr.");
+  cleaned = cleaned.replace(/\bP\s*r\s*o\s*f\s*\./g, "Prof.");
+  cleaned = cleaned.replace(/(\d{4})(?=[A-Za-zÄÖÜäöüß])/g, "$1 ");
+  cleaned = cleaned.replace(/([a-zäöüß])([A-ZÄÖÜ])/g, "$1 $2");
+  cleaned = cleaned.replace(/([a-zäöüß])and(?=\s+[A-ZÄÖÜ])/g, "$1 and");
+  return cleaned;
+}
+
+function collapseSpacedLetterRuns(line) {
+  return line.replace(/(?:\b[A-Za-zÄÖÜäöüß]\b\s*){3,}/g, (match) => match.replace(/\s+/g, ""));
 }
 
 function splitPackedLine(line) {
@@ -491,7 +503,7 @@ function isProfessorLine(line = "") {
 }
 
 function parseTimeRange(value = "") {
-  const match = value.match(/\b(\d{1,2})[:.](\d{2})\s*(?:(?:-|–|—|to|bis)\s*)?(\d{1,2})[:.](\d{2})\b(.*)$/i);
+  const match = value.match(/\b(\d{1,2})[:.](\d{2})\s*(?:(?:-|–|—|to|bis)\s*)?(\d{1,2})[:.](\d{2})(.*)$/i);
   if (!match) return null;
   return {
     start: `${match[1].padStart(2, "0")}:${match[2]}`,
@@ -502,9 +514,9 @@ function parseTimeRange(value = "") {
 
 function moveTrailingCourseType(details) {
   return details.flatMap((line) => {
-    const match = line.match(/^(.+?)\s+(L&E|L|PT|E|P|S|V|Ü)$/i);
+    const match = line.match(/^(.+?)(?:\s+(L&E|L|PT|E|P|S|V|Ü)|(L&E|PT))$/i);
     if (!match) return [line];
-    return [match[2], match[1]];
+    return [match[2] || match[3], match[1]];
   });
 }
 
@@ -515,17 +527,35 @@ function pdfItemsToLines(items) {
     if (!text) return;
     const x = Math.round(item.transform[4]);
     const y = Math.round(item.transform[5]);
+    const width = Number(item.width) || 0;
+    const height = Number(item.height) || Math.abs(Number(item.transform?.[3])) || 10;
     let row = rows.find((candidate) => Math.abs(candidate.y - y) <= 3);
     if (!row) {
       row = { y, items: [] };
       rows.push(row);
     }
-    row.items.push({ x, text });
+    row.items.push({ x, text, width, height });
   });
   return rows
     .sort((a, b) => b.y - a.y)
-    .map((row) => row.items.sort((a, b) => a.x - b.x).map((item) => item.text).join(" "))
+    .map((row) => pdfRowToLine(row.items))
     .join("\n");
+}
+
+function pdfRowToLine(items) {
+  const sorted = items.sort((a, b) => a.x - b.x);
+  let line = "";
+  let previousRight = null;
+
+  sorted.forEach((item) => {
+    const gap = previousRight === null ? 0 : item.x - previousRight;
+    const gapThreshold = Math.max(2.5, item.height * 0.28);
+    const needsSpace = line && gap > gapThreshold && !/^\s/.test(item.text);
+    line += `${needsSpace ? " " : ""}${item.text}`;
+    previousRight = Math.max(previousRight ?? item.x, item.x + item.width);
+  });
+
+  return cleanLine(line);
 }
 
 function setImportSummary(message) {
