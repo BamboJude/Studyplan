@@ -74,6 +74,18 @@ button:hover {
   min-height: 100vh;
 }
 
+.tour-launcher {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 30;
+  min-height: 40px;
+  border-color: #17211b;
+  background: #fff;
+  color: #17211b;
+  box-shadow: 0 10px 24px rgba(23, 33, 27, 0.16);
+}
+
 .intro-band {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(380px, 1.1fr);
@@ -459,6 +471,61 @@ textarea {
   font-size: 0.9rem;
 }
 
+.tour-overlay {
+  display: none;
+}
+
+.tour-overlay.active {
+  display: block;
+}
+
+.tour-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(23, 33, 27, 0.2);
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 45;
+  border: 1px solid #174b31;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgba(23, 33, 27, 0.28);
+  padding: 18px;
+}
+
+.tour-card h2 {
+  margin: 6px 0 8px;
+  font-size: 1.25rem;
+}
+
+.tour-card p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+}
+
+.tour-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.tour-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.tour-highlight {
+  position: relative;
+  z-index: 40;
+  outline: 4px solid #2b8a57;
+  outline-offset: 5px;
+  box-shadow: 0 0 0 9999px rgba(255, 255, 255, 0.08);
+}
+
 @media (max-width: 980px) {
   .intro-band,
   .workspace {
@@ -491,6 +558,21 @@ textarea {
   .actions {
     display: grid;
   }
+
+  .tour-launcher {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .tour-card {
+    left: 12px !important;
+    right: 12px;
+    width: auto !important;
+  }
+
+  .tour-actions {
+    display: grid;
+  }
 }
 
 @media print {
@@ -510,7 +592,9 @@ textarea {
   .course-list,
   .toolbar,
   .search-box,
-  .import-summary {
+  .import-summary,
+  .tour-launcher,
+  .tour-overlay {
     display: none;
   }
 

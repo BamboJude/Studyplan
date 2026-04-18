@@ -21,13 +21,49 @@ const dayNameToCode = {
 
 let semesterPlanText = "";
 let currentSearch = "";
+let activeTourIndex = 0;
 
 let courses = [];
 
+const tourSteps = [
+  {
+    target: () => el.uploadZone,
+    title: "Upload the lecture timetable",
+    body: "Click here and choose the official lecture timetable PDF. This is the important file because it contains the course times, rooms, and professors.",
+  },
+  {
+    target: () => el.rawText,
+    title: "PDF text appears here",
+    body: "After upload, extracted text appears here. If a PDF is difficult to read, paste copied timetable text here and click Read Timetable Text.",
+  },
+  {
+    target: () => el.courseList,
+    title: "Select your courses",
+    body: "The app turns the timetable into course cards. Tick only the courses you want. Clashes are allowed because the final choice is yours.",
+  },
+  {
+    target: () => el.printButton,
+    title: "Print or save your PDF",
+    body: "When your courses are selected, click Print / Save PDF. The print view is formatted as a clean landscape timetable.",
+  },
+  {
+    target: () => el.icsButton,
+    title: "Download your calendar",
+    body: "Click Download Calendar to get an .ics file. You can import it into Google Calendar, Apple Calendar, or iPhone Calendar.",
+  },
+  {
+    target: () => el.semesterPlanZone,
+    title: "Optional semester plan",
+    body: "You can add a semester plan too. It is only used to suggest likely subjects; calendar times still come from the lecture timetable.",
+  },
+];
+
 const el = {
   sourceFile: document.querySelector("#sourceFile"),
+  uploadZone: document.querySelector("label[for='sourceFile']"),
   fileStatus: document.querySelector("#fileStatus"),
   semesterPlanFile: document.querySelector("#semesterPlanFile"),
+  semesterPlanZone: document.querySelector("label[for='semesterPlanFile']"),
   semesterPlanStatus: document.querySelector("#semesterPlanStatus"),
   rawText: document.querySelector("#rawText"),
   parseTextButton: document.querySelector("#parseTextButton"),
@@ -55,6 +91,15 @@ const el = {
   icsButton: document.querySelector("#icsButton"),
   selectAllButton: document.querySelector("#selectAllButton"),
   clearSelectionButton: document.querySelector("#clearSelectionButton"),
+  tourLauncher: document.querySelector("#tourLauncher"),
+  tourOverlay: document.querySelector("#tourOverlay"),
+  tourCard: document.querySelector("#tourCard"),
+  tourProgress: document.querySelector("#tourProgress"),
+  tourTitle: document.querySelector("#tourTitle"),
+  tourBody: document.querySelector("#tourBody"),
+  tourNextButton: document.querySelector("#tourNextButton"),
+  tourBackButton: document.querySelector("#tourBackButton"),
+  tourSkipButton: document.querySelector("#tourSkipButton"),
 };
 
 function render() {
@@ -823,6 +868,66 @@ function normalizeForMatch(value = "") {
     .trim();
 }
 
+function startTour(force = false) {
+  if (!force && localStorage.getItem("hsrwTimetableTourSeen") === "yes") return;
+  activeTourIndex = 0;
+  el.tourOverlay.classList.add("active");
+  el.tourOverlay.setAttribute("aria-hidden", "false");
+  document.body.classList.add("tour-open");
+  updateTour();
+}
+
+function finishTour() {
+  localStorage.setItem("hsrwTimetableTourSeen", "yes");
+  clearTourHighlight();
+  el.tourOverlay.classList.remove("active");
+  el.tourOverlay.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("tour-open");
+}
+
+function updateTour() {
+  const step = tourSteps[activeTourIndex];
+  const target = step.target();
+  clearTourHighlight();
+  if (target) {
+    target.classList.add("tour-highlight");
+    target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }
+
+  el.tourProgress.textContent = `Step ${activeTourIndex + 1} of ${tourSteps.length}`;
+  el.tourTitle.textContent = step.title;
+  el.tourBody.textContent = step.body;
+  el.tourBackButton.disabled = activeTourIndex === 0;
+  el.tourNextButton.textContent = activeTourIndex === tourSteps.length - 1 ? "Done" : "Next";
+  positionTourCard(target);
+  setTimeout(() => el.tourCard.focus(), 120);
+}
+
+function positionTourCard(target) {
+  const cardWidth = Math.min(380, window.innerWidth - 32);
+  el.tourCard.style.width = `${cardWidth}px`;
+
+  if (!target) {
+    el.tourCard.style.left = "16px";
+    el.tourCard.style.top = "16px";
+    return;
+  }
+
+  const rect = target.getBoundingClientRect();
+  const gap = 14;
+  const preferRight = rect.right + gap + cardWidth < window.innerWidth;
+  const preferBelow = rect.bottom + gap + 220 < window.innerHeight;
+  const left = preferRight ? rect.right + gap : Math.max(16, Math.min(rect.left, window.innerWidth - cardWidth - 16));
+  const top = preferBelow ? rect.bottom + gap : Math.max(16, Math.min(rect.top, window.innerHeight - 240));
+
+  el.tourCard.style.left = `${left}px`;
+  el.tourCard.style.top = `${top}px`;
+}
+
+function clearTourHighlight() {
+  document.querySelectorAll(".tour-highlight").forEach((item) => item.classList.remove("tour-highlight"));
+}
+
 el.courseList.addEventListener("change", (event) => {
   const id = event.target.dataset.course;
   if (!id) return;
@@ -867,5 +972,30 @@ el.semesterPlanFile.addEventListener("change", (event) => {
   const [file] = event.target.files;
   if (file) handleSemesterPlanUpload(file);
 });
+el.tourLauncher.addEventListener("click", () => startTour(true));
+el.tourNextButton.addEventListener("click", () => {
+  if (activeTourIndex === tourSteps.length - 1) {
+    finishTour();
+    return;
+  }
+  activeTourIndex += 1;
+  updateTour();
+});
+el.tourBackButton.addEventListener("click", () => {
+  if (activeTourIndex === 0) return;
+  activeTourIndex -= 1;
+  updateTour();
+});
+el.tourSkipButton.addEventListener("click", finishTour);
+el.tourOverlay.addEventListener("click", (event) => {
+  if (event.target.dataset.tourClose !== undefined) finishTour();
+});
+window.addEventListener("resize", () => {
+  if (el.tourOverlay.classList.contains("active")) updateTour();
+});
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && el.tourOverlay.classList.contains("active")) finishTour();
+});
 
 render();
+setTimeout(() => startTour(), 700);
