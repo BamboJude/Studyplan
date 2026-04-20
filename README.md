@@ -30,13 +30,18 @@ Instead of writing everything down, the student can:
 - Reads timetable PDFs directly in the browser.
 - Extracts course names, times, weekdays, rooms, and professors where possible.
 - Shows courses as selectable cards.
+- Allows students to edit course names, professors, rooms, days, and times after import.
 - Allows students to choose courses even if some times clash.
+- Warns students about timetable clashes without blocking their final choice.
 - Builds a personal weekly timetable from the selected courses.
 - Creates a print-friendly PDF layout through the browser print dialog.
 - Exports an `.ics` calendar file for Google Calendar, Apple Calendar, and iOS Calendar.
+- Includes a calendar import guide for students who have not used `.ics` files before.
 - Includes a first-time interactive tour to explain how the app works.
+- Includes a sample timetable so students can test the tool before uploading their own file.
 - Supports manual course entry for cases where the PDF is messy or incomplete.
 - Uses an optional semester plan only as a helper for course suggestions.
+- Reads files in the browser, so the timetable does not need to be uploaded to a database.
 
 ## How To Use It
 
@@ -44,7 +49,7 @@ Instead of writing everything down, the student can:
 2. Click **Upload timetable PDF** and choose the official lecture timetable.
 3. Wait for the extracted text and course cards.
 4. Select the courses you want in your personal timetable.
-5. Add a manual course if something was not read correctly.
+5. Edit any course card or add a manual course if something was not read correctly.
 6. Click **Print / Save PDF** to save or print the timetable.
 7. Click **Download Calendar** to get the `.ics` file.
 8. Import the `.ics` file into your phone or computer calendar.

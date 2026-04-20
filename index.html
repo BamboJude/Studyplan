@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>HSRW Timetable Studio</title>
-    <link rel="stylesheet" href="styles.css?v=20260418-4">
+    <link rel="stylesheet" href="styles.css?v=20260420-2">
   </head>
   <body>
     <button class="tour-launcher" id="tourLauncher" type="button">How to use</button>
@@ -36,7 +36,13 @@
             <input id="sourceFile" type="file" accept=".pdf,.txt,.csv,.json,application/pdf,text/plain,text/csv,application/json">
             <textarea id="rawText" rows="8" placeholder="Or paste copied lecture timetable text here..."></textarea>
             <button class="secondary-button" id="parseTextButton" type="button">Read Timetable Text</button>
+            <button class="secondary-button" id="sampleButton" type="button">Try Sample Timetable</button>
             <div id="importSummary" class="import-summary" aria-live="polite"></div>
+          </div>
+
+          <div class="panel-section info-section">
+            <h2>Privacy</h2>
+            <p>Your timetable is read in this browser. The app does not need an account, and the file is not uploaded to a database.</p>
           </div>
 
           <div class="panel-section">
@@ -85,6 +91,16 @@
             </div>
             <button class="secondary-button" id="addManualButton" type="button">Add Course</button>
           </div>
+
+          <details class="panel-section calendar-help">
+            <summary>Calendar import guide</summary>
+            <ol>
+              <li>Download the `.ics` file after selecting your courses.</li>
+              <li>On iPhone or Mac, open the file and add it to Apple Calendar.</li>
+              <li>In Google Calendar, use Settings, Import & export, then Import.</li>
+              <li>Check the first week once, then turn on reminders in your calendar app.</li>
+            </ol>
+          </details>
         </aside>
 
         <section class="planner-panel">
@@ -107,6 +123,7 @@
             <input id="courseSearch" type="search" placeholder="Machine Learning, Prof., PC-Pool...">
           </label>
           <div id="courseList" class="course-list" aria-live="polite"></div>
+          <section id="conflictPanel" class="conflict-panel" aria-live="polite"></section>
 
           <article id="printArea" class="print-area">
             <header class="print-header">
@@ -143,6 +160,6 @@
     </div>
 
     <script src="assets/pdf.min.js?v=3.11.174"></script>
-    <script src="app.js?v=20260420-1" defer></script>
+    <script src="app.js?v=20260420-2" defer></script>
   </body>
 </html>

@@ -25,6 +25,56 @@ let activeTourIndex = 0;
 
 let courses = [];
 
+const sampleTimetableText = `Information Engineering and Computer Sciences Sample
+
+Monday
+08:15-11:30
+9511 System Simulation
+L
+Prof. Dr. Zimmer
+PC-Pool 2
+02 01 520
+
+Monday
+12:15-15:30
+9532 Mobile and Internet Computing
+L
+Prof. Dr. Boek
+Cloud Resilience Lab
+03 02 110
+
+Tuesday
+12:15-15:30
+9515 Artificial Intelligence and its Application
+L
+Prof. Dr. Ressel
+Seminarraum 6
+03 02 135
+
+Wednesday
+08:15-11:30
+9534 Privacy in Distributed Systems
+L
+Prof. Dr. Grosse-Kampmann
+Cloud Resilience Lab
+03 02 110
+
+Thursday
+12:15-15:30
+9512 Data Analysis & Information Engineering
+L
+Prof. Dr. Schwind
+RAG
+06 01 120
+
+Thursday
+12:15-15:30
+9538 Advanced Software Engineering
+L
+Prof. Dr. Example
+PC-Pool 1
+02 01 510`;
+
 const tourSteps = [
   {
     target: () => el.uploadZone,
@@ -67,6 +117,7 @@ const el = {
   semesterPlanStatus: document.querySelector("#semesterPlanStatus"),
   rawText: document.querySelector("#rawText"),
   parseTextButton: document.querySelector("#parseTextButton"),
+  sampleButton: document.querySelector("#sampleButton"),
   importSummary: document.querySelector("#importSummary"),
   studentName: document.querySelector("#studentName"),
   programmeName: document.querySelector("#programmeName"),
@@ -80,6 +131,7 @@ const el = {
   manualEnd: document.querySelector("#manualEnd"),
   addManualButton: document.querySelector("#addManualButton"),
   courseList: document.querySelector("#courseList"),
+  conflictPanel: document.querySelector("#conflictPanel"),
   courseSearch: document.querySelector("#courseSearch"),
   courseStats: document.querySelector("#courseStats"),
   printTitle: document.querySelector("#printTitle"),
@@ -105,6 +157,7 @@ const el = {
 function render() {
   renderStats();
   renderCourseList();
+  renderConflicts();
   renderTimetable();
   renderHeader();
 }
@@ -135,8 +188,9 @@ function renderCourseList() {
     return;
   }
   visibleCourses.forEach((course) => {
-    const card = document.createElement("label");
-    card.className = `course-card ${course.selected ? "selected" : ""}`;
+    const card = document.createElement("article");
+    const hasConflict = courseHasConflict(course);
+    card.className = `course-card ${course.selected ? "selected" : ""} ${hasConflict ? "has-conflict" : ""}`;
     card.innerHTML = `
       <h3>${escapeHtml(course.title)}</h3>
       <div class="meta">
@@ -144,12 +198,15 @@ function renderCourseList() {
         <span>${escapeHtml(course.professor || "Professor pending")}</span>
         <span>${escapeHtml(formatLocation(course))}</span>
       </div>
+      ${hasConflict ? `<span class="conflict-badge">Time clash</span>` : ""}
       ${course.suggested ? `<span class="suggested-badge">Suggested by semester plan</span>` : ""}
+      ${course.editing ? renderCourseEditor(course) : ""}
       <span class="course-actions">
-        <span class="toggle-row">
+        <label class="toggle-row">
           <input type="checkbox" ${course.selected ? "checked" : ""} data-course="${course.id}">
           Include in timetable
-        </span>
+        </label>
+        <button class="edit-course" type="button" data-edit="${course.id}">${course.editing ? "Done" : "Edit"}</button>
         <button class="remove-course" type="button" data-remove="${course.id}">Remove</button>
       </span>
     `;
@@ -157,12 +214,50 @@ function renderCourseList() {
   });
 }
 
+function renderCourseEditor(course) {
+  return `
+    <div class="course-editor" data-editor="${course.id}">
+      <input data-edit-field="code" data-id="${course.id}" type="text" value="${escapeHtml(course.code)}" placeholder="Course code">
+      <input data-edit-field="title" data-id="${course.id}" type="text" value="${escapeHtml(course.title)}" placeholder="Course name">
+      <input data-edit-field="professor" data-id="${course.id}" type="text" value="${escapeHtml(course.professor)}" placeholder="Professor">
+      <input data-edit-field="room" data-id="${course.id}" type="text" value="${escapeHtml(course.room)}" placeholder="Hall / room">
+      <select data-edit-field="day" data-id="${course.id}">
+        ${Object.entries(dayLabels).map(([value, label]) => `<option value="${value}" ${course.day === value ? "selected" : ""}>${label}</option>`).join("")}
+      </select>
+      <input data-edit-field="start" data-id="${course.id}" type="time" value="${escapeHtml(course.start)}">
+      <input data-edit-field="end" data-id="${course.id}" type="time" value="${escapeHtml(course.end)}">
+    </div>
+  `;
+}
+
 function renderStats() {
   const selected = getSelectedCourses().length;
   const total = courses.length;
+  const conflicts = getConflicts(getSelectedCourses()).length;
   el.courseStats.textContent = total
-    ? `${total} course${total === 1 ? "" : "s"} found · ${selected} selected`
+    ? `${total} course${total === 1 ? "" : "s"} found · ${selected} selected${conflicts ? ` · ${conflicts} clash${conflicts === 1 ? "" : "es"}` : ""}`
     : "No timetable loaded yet.";
+}
+
+function renderConflicts() {
+  const conflicts = getConflicts(getSelectedCourses());
+  if (!conflicts.length) {
+    el.conflictPanel.innerHTML = "";
+    return;
+  }
+
+  el.conflictPanel.innerHTML = `
+    <h2>Time clashes to review</h2>
+    <p>These are warnings only. You can still export the timetable if the clash is intentional.</p>
+    <div class="conflict-list">
+      ${conflicts.map((conflict) => `
+        <div class="conflict-item">
+          <strong>${dayLabels[conflict.day]} ${conflict.start}-${conflict.end}</strong>
+          <span>${escapeHtml(conflict.first.title)} / ${escapeHtml(conflict.second.title)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function renderTimetable() {
@@ -279,6 +374,33 @@ function renderBlockDetails(selected) {
 
 function getSelectedCourses() {
   return courses.filter((course) => course.selected);
+}
+
+function getConflicts(selected) {
+  const conflicts = [];
+  selected.forEach((first, firstIndex) => {
+    selected.slice(firstIndex + 1).forEach((second) => {
+      if (first.day !== second.day) return;
+      if (!first.start || !first.end || !second.start || !second.end) return;
+      const start = Math.max(timeToMinutes(first.start), timeToMinutes(second.start));
+      const end = Math.min(timeToMinutes(first.end), timeToMinutes(second.end));
+      if (start < end) {
+        conflicts.push({
+          day: first.day,
+          start: minutesToTime(start),
+          end: minutesToTime(end),
+          first,
+          second,
+        });
+      }
+    });
+  });
+  return conflicts;
+}
+
+function courseHasConflict(course) {
+  if (!course.selected) return false;
+  return getConflicts(getSelectedCourses()).some((conflict) => conflict.first.id === course.id || conflict.second.id === course.id);
 }
 
 function matchesSearch(course) {
@@ -849,6 +971,12 @@ function timeToMinutes(time) {
   return hours * 60 + minutes;
 }
 
+function minutesToTime(value) {
+  const hours = Math.floor(value / 60);
+  const minutes = value % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
 function escapeHtml(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
@@ -937,6 +1065,17 @@ function clearTourHighlight() {
   document.querySelectorAll(".tour-highlight").forEach((item) => item.classList.remove("tour-highlight"));
 }
 
+function updateEditedCourse(target) {
+  const field = target.dataset.editField;
+  const id = target.dataset.id;
+  if (!field || !id) return;
+  const value = field === "start" || field === "end" ? normalizeTime(target.value) || target.value : target.value.trim();
+  courses = courses.map((course) => course.id === id ? { ...course, [field]: value } : course);
+  renderStats();
+  renderConflicts();
+  renderTimetable();
+}
+
 el.courseList.addEventListener("change", (event) => {
   const id = event.target.dataset.course;
   if (!id) return;
@@ -945,12 +1084,24 @@ el.courseList.addEventListener("change", (event) => {
   render();
 });
 el.courseList.addEventListener("click", (event) => {
-  const id = event.target.dataset.remove;
-  if (!id) return;
-  event.preventDefault();
-  event.stopPropagation();
-  courses = courses.filter((course) => course.id !== id);
-  render();
+  const removeId = event.target.dataset.remove;
+  const editId = event.target.dataset.edit;
+  if (removeId) {
+    event.preventDefault();
+    courses = courses.filter((course) => course.id !== removeId);
+    render();
+  }
+  if (editId) {
+    event.preventDefault();
+    courses = courses.map((course) => course.id === editId ? { ...course, editing: !course.editing } : course);
+    render();
+  }
+});
+el.courseList.addEventListener("input", (event) => {
+  updateEditedCourse(event.target);
+});
+el.courseList.addEventListener("change", (event) => {
+  updateEditedCourse(event.target);
 });
 
 [el.studentName, el.programmeName, el.semesterStart, el.semesterEnd].forEach((input) => {
@@ -959,6 +1110,11 @@ el.courseList.addEventListener("click", (event) => {
 
 el.addManualButton.addEventListener("click", addManualCourse);
 el.parseTextButton.addEventListener("click", () => importParsedText(el.rawText.value));
+el.sampleButton.addEventListener("click", () => {
+  el.rawText.value = sampleTimetableText;
+  el.fileStatus.textContent = "Sample timetable loaded";
+  importParsedText(sampleTimetableText);
+});
 el.courseSearch.addEventListener("input", () => {
   currentSearch = normalizeForMatch(el.courseSearch.value);
   renderCourseList();
