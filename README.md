@@ -2,6 +2,8 @@
 
 HSRW Timetable Studio is a small web app that turns a lecture timetable into a personal semester plan. It lets a student upload a timetable PDF, choose the courses they actually want to attend, print a clean timetable, and download a calendar file that works with Google Calendar, Apple Calendar, and iPhone Calendar.
 
+Live website: [https://plankton-app-ilvnc.ondigitalocean.app](https://plankton-app-ilvnc.ondigitalocean.app)
+
 I made this first for personal use because I was too lazy to write down every course by hand. My friend Larry had an even more physical system: he drew lines across the timetable just to track which days he had lectures. That worked, but it was stressful and easy to miss something.
 
 Now both of us can choose our courses once, import them into our phone calendars, and get notifications before class with the course name, professor, room, and time already included.
